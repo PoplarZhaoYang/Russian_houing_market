@@ -7,6 +7,7 @@ import pandas as pd
 from sklearn.model_selection import cross_val_score
 from sklearn import model_selection, preprocessing
 from sklearn import metrics
+from xgboost import XGBRegressor
 
 train_df = pd.read_csv('./data/train.csv', parse_dates=['timestamp'])
 test_df = pd.read_csv('./data/test.csv', parse_dates=['timestamp'])
@@ -36,21 +37,32 @@ xgb_params = {
         'colsample_bytree': 0.7,
         'objective': 'reg:linear',
         'eval_metric': 'rmse', #评估函数
-        'silent':1
+        'silent':1,#显示xgboost训练过程
+        'num_boost_round': 100
 }
 
 dtrain = xgb.DMatrix(train_X, train_y, feature_names=train_X.columns.values)
 dtest = xgb.DMatrix(test_X, feature_names=test_X.columns.values)
 
-model = xgb.train(xgb_params, dtrain, num_boost_round=100)
+model = xgb.train(xgb_params, dtrain, num_boost_round=1000)
 ypred = model.predict(dtest)
 
 
-with open('predict.txt', 'w') as f:
-    f.write('id,price_doc\n')
-    for ids, itme in zip(test_id, ypred):
-        if itme < 0:
-            itme = -itme
-        f.write("%d,%.2f\n" % (ids, itme))
+
+"""sklearn API
+model = XGBRegressor(max_depth=9, learning_rate=0.1, silent=False, objective='reg:linear',
+        booster='gbtree', n_jobs=6)
+scoring = cross_val_score(model, train_X, train_y, scoring='neg_mean_squared_error')
+print scoring.mean(), scoring.std()
+"""
+
+
+def save_pred(test_id, ypred):
+    with open('predict.txt', 'w') as f:
+        f.write('id,price_doc\n')
+        for ids, itme in zip(test_id, ypred):
+            if itme < 0:
+                itme = -itme
+                f.write("%d,%.2f\n" % (ids, itme))
 
 
