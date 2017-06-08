@@ -84,6 +84,10 @@ class MyXgb(object):
                                #  subsample=xgb_param['subsample'],
                                #  min_child_weight=xgb_param['min_child_weight'],
                                #  reg_lambda=xgb_param['reg_lambda'],
+
+                               #  n_estimators=200,
+                               #  reg_lambda=0.1,
+
                                  objective='reg:linear',
                                  n_jobs=7,
                                  )
@@ -132,9 +136,9 @@ def main():
     """
     T = MyXgb()
     #T.tune_model_param()
-   # T.train_model()
+    T.train_model()
    # T.local_cv()
-    #T.predict_price()
+    T.predict_price()
 
 if __name__ == "__main__":
     main()
