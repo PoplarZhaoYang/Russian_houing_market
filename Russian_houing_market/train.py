@@ -9,7 +9,10 @@ import numpy as np
 import pickle
 from sklearn import preprocessing
 from sklearn.model_selection import  GridSearchCV
+from sklearn.model_selection import  cross_val_score 
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics import make_scorer
+
 
 
 class MyXgb(object):
@@ -46,13 +49,14 @@ class MyXgb(object):
 
         model = xgb.XGBRegressor(objective='reg:linear')
         param_grids = {
-            'max_depth': np.arange(3, 4, 1),
+            'max_depth': np.arange(3, 13, 2),
             'learning_rate': np.arange(0.01, 0.2, 0.02),
             'n_estimators': np.arange(100, 500, 100),
             'subsample': np.arange(0.3, 0.8, 0.1),
             'min_child_weight': [1, 2, 3],
             'reg_lambda': [0.01, 0.1, 1, 10, 100]
         }
+        score_func = make_scorer(self.score_RMSLE, greater_is_better=False)
         clf = GridSearchCV(model, param_grid=param_grids, cv=5, n_jobs=7,
                             verbose=4, scoring='neg_mean_squared_error')
         clf.fit(train_x, train_y)
@@ -75,11 +79,11 @@ class MyXgb(object):
             xgb_param = pickle.load(_f)
         
         model = xgb.XGBRegressor( max_depth=xgb_param['max_depth'],
-                                 #learning_rate=xgb_param['learning_rate'],
-                                 #n_estimators=xgb_param['n_estimators'],
-                                 #subsample=xgb_param['subsample'],
-                                 #min_child_weight=xgb_param['min_child_weight'],
-                                 #reg_lambda=xgb_param['reg_lambda'],
+                               #  learning_rate=xgb_param['learning_rate'],
+                               #  n_estimators=xgb_param['n_estimators'],
+                               #  subsample=xgb_param['subsample'],
+                               #  min_child_weight=xgb_param['min_child_weight'],
+                               #  reg_lambda=xgb_param['reg_lambda'],
                                  objective='reg:linear',
                                  n_jobs=7,
                                  )
@@ -102,26 +106,38 @@ class MyXgb(object):
             f.write('id,price_doc\n')
             for ids, itme in zip(test_id, predicted):
                 f.write("%d,%.2f\n" % (ids, itme))
-    def local_cv(self, train_file='./data/train.csv'):
+    def local_cv(self, train_file='./data/train.csv', model_file='./tmp/xgb.model'):
         """本地交叉验证分数
         """
-
-
+        with open(model_file, 'r') as _f:
+            model = pickle.load(_f)
         train_df = pd.read_csv(train_file, parse_dates=['timestamp'])
         self.refine_object(train_df)
         train_y = train_df.price_doc.values
         train_x = train_df.drop(["id", "timestamp", "price_doc"], axis=1)
+        score_func = make_scorer(self.score_RMSLE, greater_is_better=False)
+        scores = cross_val_score(model, train_x, train_y, cv=5, scoring=score_func)
+        print "RMSLE %.2f (+/- %.2f)" % (scores.mean(), scores.std())
+    def score_RMSLE(self, ground_true, prediction):
+        ground_true1 = ground_true + 1
+        prediciton1 = prediction + 1
+        ground_true_log = np.log(ground_true1)
+        prediction_log = np.log(prediciton1)
+        temp = (ground_true_log - prediction_log) ** 2
+        sum_temp = np.sum(temp) / ground_true.shape[0]
+        return np.sqrt(sum_temp)
 
 def main():
     """main
     """
     T = MyXgb()
-    T.train_model()
-    T.predict_price()
+    #T.tune_model_param()
+   # T.train_model()
+   # T.local_cv()
+    #T.predict_price()
 
 if __name__ == "__main__":
     main()
-
 """sklearn API
 print scoring.mean(), scoring.std()
 """
