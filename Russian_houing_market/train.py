@@ -31,6 +31,7 @@ class MyXgb(object):
             'silent': 0,  # 显示xgboost训练过程
             'num_boost_round': 40
         }
+
     def refine_object(self, train_df):
         """处理类别对象为可训练数值特征
         """
@@ -39,6 +40,7 @@ class MyXgb(object):
                 lencode = preprocessing.LabelEncoder()
                 lencode.fit(list(train_df[_f].values))
                 train_df[_f] = lencode.transform(list(train_df[_f].values))
+
     def tune_model_param(self, source_file='./data/train.csv' ,aim_file='./tmp/xgb_param.p'):
         """sklearn api
         """
@@ -64,6 +66,7 @@ class MyXgb(object):
         print clf.best_score_
         with open(aim_file, 'w') as _f:
             pickle.dump(clf.best_params_, _f)
+
     def train_model(self, source_data='./data/train.csv', source_param='./tmp/xgb_param.p',
                      model_file='./tmp/xgb.model', retrain=False):
         """传入训练数据的文件名，和保存地址文件名
@@ -110,8 +113,9 @@ class MyXgb(object):
             f.write('id,price_doc\n')
             for ids, itme in zip(test_id, predicted):
                 f.write("%d,%.2f\n" % (ids, itme))
+
     def local_cv(self, train_file='./data/train.csv', model_file='./tmp/xgb.model'):
-        """本地交叉验证分数
+        """根据保持的xgb模型，得出本地交叉验证分数
         """
         with open(model_file, 'r') as _f:
             model = pickle.load(_f)
@@ -121,8 +125,11 @@ class MyXgb(object):
         train_x = train_df.drop(["id", "timestamp", "price_doc"], axis=1)
         score_func = make_scorer(self.score_RMSLE, greater_is_better=False)
         scores = cross_val_score(model, train_x, train_y, cv=5, scoring=score_func)
-        print "RMSLE %.2f (+/- %.2f)" % (scores.mean(), scores.std())
+        print "RMSLE %.5f (+/- %.2f)" % (scores.mean(), scores.std())
+
     def score_RMSLE(self, ground_true, prediction):
+        """RMSLE评分函数, 传入实际值，和预测值，返回RMLSE分数
+        """
         ground_true1 = ground_true + 1
         prediciton1 = prediction + 1
         ground_true_log = np.log(ground_true1)
@@ -136,12 +143,10 @@ def main():
     """
     T = MyXgb()
     #T.tune_model_param()
-    T.train_model()
-   # T.local_cv()
-    T.predict_price()
+    #T.train_model()
+    T.local_cv()
+    #T.predict_price()
+    
 
 if __name__ == "__main__":
     main()
-"""sklearn API
-print scoring.mean(), scoring.std()
-"""
