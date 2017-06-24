@@ -1,2 +1,2 @@
-# JourneyThroughKaggle
-A journey through Kaggle to improve my ML&amp;DM
+# Russian_houing_market
+The kaggle contest of Russian_houing_market.
